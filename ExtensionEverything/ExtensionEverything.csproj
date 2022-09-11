@@ -1,0 +1,35 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net461</TargetFramework>
+    <LangVersion>Latest</LangVersion>
+    <DebugType>none</DebugType>
+  </PropertyGroup>
+
+  <UsingTask TaskName="Blur.Processing.BlurTask" AssemblyFile="$(PkgBlur)\tools\blur.exe" TaskFactory="TaskHostFactory" Condition="'$(PkgBlur)' != ''" />
+  <ItemGroup>
+    <PackageReference Include="Blur" Version="0.2.7-beta" PrivateAssets="all" ExcludeAssets="compile;runtime" />
+    <PackageReference Include="Mono.Cecil" Version="0.10.0-beta3" PrivateAssets="all" ExcludeAssets="runtime" />
+    <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="6.0.0" />
+    <PackageReference Include="System.ValueTuple" Version="4.5.0" />
+    <Reference Include="$(PkgBlur)\tools\blur.exe" Private="false" />
+    <Reference Include="$(PkgBlur)\lib\portable-net45+netcore45+win8+wpa81+MonoAndroid+Xamarin.iOS10+MonoTouch\Blur.Library.dll" Private="false" />
+    <RefAssembly Include="@(IntermediateRefAssembly->'@&quot;%(FullPath)&quot;')" />
+    <RefAssembly Include="null" Condition="'@(RefAssembly)' == ''" />
+  </ItemGroup>
+
+  <Target Name="AddExtensionReferences" AfterTargets="ResolveReferences">
+    <WriteLinesToFile File="Extensions.generated.cs" Lines="@(RefAssembly->'partial class Extensions { public const string Dir = @&quot;$(IntermediateOutputPath)Extensions\&quot;%3B public const string RefAssembly = %(Identity)%3B }')" Overwrite="true" WriteOnlyWhenDifferent="true" />
+    <ItemGroup>
+      <ExtensionReferences Include="@(ReferencePath)" Condition="Exists('$(IntermediateOutputPath)Extensions\%(Filename)%(Extension)')" />
+      <ReferencePath Remove="@(ExtensionReferences)" />
+      <ReferencePath Include="@(ExtensionReferences->'$(IntermediateOutputPath)Extensions\%(Filename)%(Extension)')" />
+    </ItemGroup>
+    <PropertyGroup>
+      <ExtensionConstants>@(ExtensionReferences-&gt;'EXTENSION_%(Filename)'-&gt;Replace('.', '_'))</ExtensionConstants>
+      <DefineConstants>$(DefineConstants);$(ExtensionConstants.ToUpper())</DefineConstants>
+    </PropertyGroup>
+  </Target>
+
+</Project>
